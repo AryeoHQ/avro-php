@@ -334,7 +334,7 @@ class AvroSchema
       $extra_attributes = array_diff_key($avro, array_flip(self::$reserved_attrs));
 
       if (self::is_primitive_type($type))
-        return new AvroPrimitiveSchema($type, $logical_type, $extra_attributes, true);
+        return new AvroPrimitiveSchema($type, $logical_type, $extra_attributes, false);
 
       elseif (self::is_named_type($type))
       {
@@ -393,7 +393,7 @@ class AvroSchema
                                                    $type));
     }
     elseif (self::is_primitive_type($avro))
-      return new AvroPrimitiveSchema($avro, null, [], true);
+      return new AvroPrimitiveSchema($avro, null, [], false);
     else
       throw new AvroSchemaParseException(
         sprintf('%s is not a schema we know about.',
@@ -860,6 +860,11 @@ class AvroNamedSchema extends AvroSchema
   private $doc;
 
   /**
+   * @var string
+   */
+  const DEFAULT_ATTR = 'default';
+
+  /**
    * @param string $type
    * @param AvroName $name
    * @param string $doc documentation string
@@ -893,6 +898,8 @@ class AvroNamedSchema extends AvroSchema
       $avro[AvroSchema::NAMESPACE_ATTR] = $namespace;
     if (!is_null($this->doc))
       $avro[AvroSchema::DOC_ATTR] = $this->doc;
+    if (array_key_exists(AvroNamedSchema::DEFAULT_ATTR, $this->extra_attributes))
+      $avro[AvroNamedSchema::DEFAULT_ATTR] = $this->extra_attributes[AvroNamedSchema::DEFAULT_ATTR];
 
     if (null !== $this->logical_type) { return array_merge($avro, array(
             self::LOGICAL_TYPE_ATTR => $this->logical_type
