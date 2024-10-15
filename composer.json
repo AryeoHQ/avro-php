@@ -1,6 +1,6 @@
 {
-    "name": "flix-tech/avro-php",
-    "description": "Avro schema encoder/decoder. Fork of rg/avro-php",
+    "name": "aryeo/avro-php",
+    "description": "Fork of flix-tech/avro-php to patch schema object functionality for compatability with Streamz ",
     "license": "Apache-2.0",
     "require": {
         "php": ">=7.4|>=8.0"
