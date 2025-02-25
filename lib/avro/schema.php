@@ -1611,7 +1611,7 @@ class AvroField extends AvroSchema
     $this->has_default = $has_default;
     if ($this->has_default)
       $this->default = $default;
-    $this-has_tags = $has_tags;
+    $this->has_tags = $has_tags;
     if ($this->has_tags)
       $this->tags = $tags;
     $this->check_order_value($order);
