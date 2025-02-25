@@ -184,6 +184,11 @@ class AvroSchema
   const TYPE_ATTR = 'type';
 
   /**
+   * @var string schema tags attribute name
+   */
+  const TAGS_ATTR = 'tags';
+
+  /**
    * @var string named schema name attribute name
    */
   const NAME_ATTR = 'name';
@@ -893,6 +898,8 @@ class AvroNamedSchema extends AvroSchema
       $avro[AvroSchema::NAMESPACE_ATTR] = $namespace;
     if (!is_null($this->doc))
       $avro[AvroSchema::DOC_ATTR] = $this->doc;
+    if (array_key_exists(AvroSchema::TAGS_ATTR, $this->extra_attributes))
+      $avro[AvroSchema::TAGS_ATTR] = $this->extra_attributes[AvroSchema::TAGS_ATTR];
 
     if (null !== $this->logical_type) { return array_merge($avro, array(
             self::LOGICAL_TYPE_ATTR => $this->logical_type
@@ -1332,6 +1339,14 @@ class AvroRecordSchema extends AvroNamedSchema
         $has_default = true;
       }
 
+      $tags = null;
+      $has_tags = false;
+      if (array_key_exists(AvroField::TAGS_ATTR, $field))
+      {
+        $tags = $field[AvroField::TAGS_ATTR];
+        $has_tags = true;
+      }
+
       if (in_array($name, $field_names))
         throw new AvroSchemaParseException(
           sprintf("Field name %s is already in use", $name));
@@ -1346,7 +1361,7 @@ class AvroRecordSchema extends AvroNamedSchema
         $field_schema = self::subparse($type, $default_namespace, $schemata);
 
       $new_field = new AvroField($name, $field_schema, $is_schema_from_schemata,
-                                 $has_default, $default, $order, $doc,
+                                 $has_default, $default, $has_tags, $tags, $order, $doc,
                                  $logical_type, $precision, $scale);
       $field_names []= $name;
       $fields []= $new_field;
@@ -1470,6 +1485,11 @@ class AvroField extends AvroSchema
   /**
    * @var string
    */
+  const TAGS_ATTR = 'tags';
+
+  /**
+   * @var string
+   */
   const ASC_SORT_ORDER = 'ascending';
 
   /**
@@ -1527,6 +1547,16 @@ class AvroField extends AvroSchema
   private $default;
 
   /**
+   * @var boolean whether or no there is a tags value
+   */
+  private $has_tags;
+
+  /**
+   * @var string field tags value
+   */
+  private $tags;
+
+  /**
    * @var string sort order of this field
    */
   private $order;
@@ -1569,7 +1599,7 @@ class AvroField extends AvroSchema
    * @todo Check validity of $order value
    */
   public function __construct($name, $schema, $is_type_from_schemata,
-                              $has_default, $default, $order=null, $doc=null,
+                              $has_default, $default, $has_tags, $tags, $order=null, $doc=null,
                               $logical_type=null, $precision=null, $scale=null)
   {
     if (!AvroName::is_well_formed_name($name))
@@ -1581,6 +1611,9 @@ class AvroField extends AvroSchema
     $this->has_default = $has_default;
     if ($this->has_default)
       $this->default = $default;
+    $this-has_tags = $has_tags;
+    if ($this->has_tags)
+      $this->tags = $tags;
     $this->check_order_value($order);
     $this->order = $order;
     $this->doc = $doc;
@@ -1601,6 +1634,9 @@ class AvroField extends AvroSchema
 
     if ($this->has_default)
       $avro[AvroField::DEFAULT_ATTR] = $this->default;
+
+    if ($this->has_tags)
+      $avro[AvroField::TAGS_ATTR] = $this->tags;
 
     if ($this->order)
       $avro[AvroField::ORDER_ATTR] = $this->order;
