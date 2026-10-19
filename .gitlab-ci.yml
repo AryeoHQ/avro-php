@@ -1,0 +1,76 @@
+# Tests aryeo/avro-php and publishes it to the Artifactory Composer repository.
+#
+# Branches run validation and the tests. A semver tag push (e.g. 1.1.1) runs the same
+# checks, then packages the tagged source and publishes it.
+#
+# The job scripts come from the shared template.
+include:
+  - project: vendor-platform/ci_cd/gitlab-ci-templates
+    ref: main
+    file: php-composer-package.yml
+
+stages:
+  - test
+  - package
+  - publish
+
+default:
+  tags:
+    - build
+  interruptible: true
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+validate:
+  stage: test
+  extends: .php-composer
+  script:
+    - composer validate --strict
+
+# GitHub runs these tests in an image that also builds the gmp and snappy extensions. The CI
+# image has neither: LongEncodingTest skips its GMP tests (the library uses gmp only on 32-bit
+# PHP), and the snappy codec cases in DataFileTest error until a PHP CI image includes snappy.
+tests:
+  stage: test
+  extends: .php-tests
+  script:
+    # The tests write to these directories, as in the GitHub workflow.
+    - mkdir -p build/tmp build/share/test/schemas build/build/interop/data
+    - composer show -D
+    - vendor/bin/phpunit
+
+package:
+  stage: package
+  extends: .package
+  needs: [validate, tests]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/
+
+publish:
+  stage: publish
+  extends: .publish
+  needs: [package]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/
+
+# Publishes existing tags that predate the GitLab pipeline. Run a pipeline on master with
+# BACKFILL_TAGS set, e.g. "1.0.0 1.1.0". Versions already in Artifactory are skipped.
+backfill:package:
+  stage: package
+  extends: .backfill-package
+  needs: []
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $BACKFILL_TAGS
+
+backfill:publish:
+  stage: publish
+  extends: .backfill-publish
+  needs: ["backfill:package"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $BACKFILL_TAGS
