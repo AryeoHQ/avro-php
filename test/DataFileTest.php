@@ -78,6 +78,10 @@ class DataFileTest extends \PHPUnit\Framework\TestCase
   {
     $values = [];
     foreach (AvroDataIO::valid_codecs() as $codec) {
+      // The snappy codec needs the snappy extension, which only the Docker test image builds.
+      if ($codec === AvroDataIO::SNAPPY_CODEC && !function_exists('snappy_compress')) {
+        continue;
+      }
       $values[] = [$codec];
     }
     return $values;

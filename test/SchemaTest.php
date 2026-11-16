@@ -536,7 +536,11 @@ class SchemaTest extends \PHPUnit\Framework\TestCase
     $schema_string = $example->schema_string;
     try
     {
-      $normalized_schema_string = $example->normalized_schema_string;
+      // This fork serializes primitive types in short form ("long", not {"type":"long"}),
+      // for compatibility with Streamz (2e8a18d), so expect that form.
+      $normalized_schema_string = preg_replace(
+        '/\{"type":"(null|boolean|int|long|float|double|bytes|string)"\}/', '"$1"',
+        $example->normalized_schema_string);
       $schema = AvroSchema::parse($schema_string);
       $this->assertTrue($example->is_valid,
                         sprintf("schema_string: %s\n",
